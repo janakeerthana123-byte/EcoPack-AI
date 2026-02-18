@@ -6,12 +6,13 @@ import joblib
 import os
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+from io import StringIO
 
 app = Flask(__name__)
 CORS(app)
 
 # ==========================================================
-# LAZY MODEL LOADING (PREVENTS RENDER CRASH)
+# LAZY MODEL LOADING (RENDER SAFE)
 # ==========================================================
 cost_model = None
 co2_model = None
@@ -44,7 +45,7 @@ def load_models():
 
 
 # ==========================================================
-# DATABASE CONNECTION (RENDER SAFE)
+# DATABASE CONNECTION
 # ==========================================================
 def get_connection():
     return psycopg2.connect(
@@ -66,7 +67,7 @@ def home():
 
 
 # ==========================================================
-# CREATE TABLE ROUTE
+# CREATE TABLE
 # ==========================================================
 @app.route("/create-table")
 def create_table():
@@ -99,22 +100,22 @@ def create_table():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-from io import StringIO
 
+
+# ==========================================================
+# FAST MATERIALS UPLOAD (COPY METHOD)
+# ==========================================================
 @app.route("/upload-materials")
 def upload_materials():
     try:
         df = pd.read_csv("Materials.csv")
 
-        # ❗ Remove material_id column if it exists
         if "material_id" in df.columns:
             df = df.drop(columns=["material_id"])
 
         conn = get_connection()
         cursor = conn.cursor()
 
-        # Optional: Clear table before inserting
         cursor.execute("TRUNCATE TABLE materials;")
 
         buffer = StringIO()
@@ -142,13 +143,14 @@ def upload_materials():
         cursor.close()
         conn.close()
 
-        return {"status": f"{len(df)} materials uploaded successfully"}
+        return jsonify({"status": f"{len(df)} materials uploaded successfully"})
 
     except Exception as e:
-        return {"error": str(e)}
+        return jsonify({"error": str(e)}), 500
+
 
 # ==========================================================
-# RECOMMEND API
+# RECOMMEND API (FIXED VERSION)
 # ==========================================================
 @app.route("/recommend", methods=["POST"])
 def recommend():
@@ -159,7 +161,6 @@ def recommend():
         if not data:
             return jsonify({"error": "No input data provided"}), 400
 
-        category = data.get("product_category")
         weight = float(data.get("product_weight_kg", 1))
         fragility = float(data.get("fragility_level_1_to_10", 5))
         moisture = float(data.get("moisture_sensitivity_0_to_1", 0.5))
@@ -186,45 +187,27 @@ def recommend():
         conn.close()
 
         if df.empty:
-            return jsonify({"message": "No materials available in database."})
+            return jsonify({"message": "No materials available."})
 
-        df = df[df["weight_capacity_kg"] >= weight * 1.1]
+        # Apply product features to all materials
+        df["product_weight_kg"] = weight
+        df["fragility_level_1_to_10"] = fragility
+        df["moisture_sensitivity_0_to_1"] = moisture
+        df["leakage_risk_0_to_1"] = leakage
+        df["shipping_stress_index_1_to_10"] = shipping
+        df["regulatory_requirement_level_1_to_5"] = regulatory
 
-        if df.empty:
-            return jsonify({"message": "No materials support this weight."})
-
-        df["category_priority"] = 0.0
-
-        if category == "Electronics & Consumer Goods":
-            df.loc[df["base_category"].isin(["Plastic","Bioplastic","Paper","Metal"]), "category_priority"] += 0.3
-
-        feature_df = pd.DataFrame({
-            "product_weight_kg": weight,
-            "fragility_level_1_to_10": fragility,
-            "moisture_sensitivity_0_to_1": moisture,
-            "leakage_risk_0_to_1": leakage,
-            "shipping_stress_index_1_to_10": shipping,
-            "regulatory_requirement_level_1_to_5": regulatory
-        })
-
-        for col in columns[3:]:
-            feature_df[col] = df[col]
-
-        feature_df = feature_df[MODEL_FEATURES]
+        feature_df = df[MODEL_FEATURES]
         scaled = scaler.transform(feature_df)
 
-        df["predicted_cost"] = cost_model.predict(scaled).clip(10, 250)
-        df["predicted_co2"] = co2_model.predict(scaled).clip(0.1, 120)
+        df["predicted_cost"] = cost_model.predict(scaled)
+        df["predicted_co2"] = co2_model.predict(scaled)
 
         norm = MinMaxScaler()
         df["cost_score"] = 1 - norm.fit_transform(df[["predicted_cost"]])
         df["co2_score"] = 1 - norm.fit_transform(df[["predicted_co2"]])
 
-        df["final_score"] = (
-            0.4 * df["cost_score"] +
-            0.4 * df["co2_score"] +
-            0.2 * df["category_priority"]
-        ).clip(0, 1)
+        df["final_score"] = (0.5 * df["cost_score"] + 0.5 * df["co2_score"])
 
         df = df.sort_values(by="final_score", ascending=False).head(3)
 
@@ -245,7 +228,7 @@ def recommend():
 
 
 # ==========================================================
-# RUN LOCALLY
+# LOCAL RUN
 # ==========================================================
 if __name__ == "__main__":
     app.run(debug=True)

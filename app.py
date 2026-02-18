@@ -107,8 +107,15 @@ def upload_materials():
     try:
         df = pd.read_csv("Materials.csv")
 
+        # ❗ Remove material_id column if it exists
+        if "material_id" in df.columns:
+            df = df.drop(columns=["material_id"])
+
         conn = get_connection()
         cursor = conn.cursor()
+
+        # Optional: Clear table before inserting
+        cursor.execute("TRUNCATE TABLE materials;")
 
         buffer = StringIO()
         df.to_csv(buffer, index=False, header=False)

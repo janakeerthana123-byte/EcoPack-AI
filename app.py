@@ -108,22 +108,24 @@ def upload_materials():
         conn = get_connection()
         cursor = conn.cursor()
 
-        for _, row in df.iterrows():
-            cursor.execute("""
-                INSERT INTO materials (
-                    base_category,
-                    material_form,
-                    tensile_strength_mpa,
-                    thickness_mm,
-                    weight_capacity_kg,
-                    moisture_barrier_score,
-                    leakage_resistance_score,
-                    biodegradability_score,
-                    co2_kg_per_kg,
-                    recyclability_percent,
-                    cost_per_kg_inr
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
+        insert_query = """
+            INSERT INTO materials (
+                base_category,
+                material_form,
+                tensile_strength_mpa,
+                thickness_mm,
+                weight_capacity_kg,
+                moisture_barrier_score,
+                leakage_resistance_score,
+                biodegradability_score,
+                co2_kg_per_kg,
+                recyclability_percent,
+                cost_per_kg_inr
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        data = [
+            (
                 row["base_category"],
                 row["material_form"],
                 row["tensile_strength_mpa"],
@@ -135,13 +137,17 @@ def upload_materials():
                 row["co2_kg_per_kg"],
                 row["recyclability_percent"],
                 row["cost_per_kg_inr"]
-            ))
+            )
+            for _, row in df.iterrows()
+        ]
+
+        cursor.executemany(insert_query, data)
 
         conn.commit()
         cursor.close()
         conn.close()
 
-        return {"status": "Materials uploaded successfully"}
+        return {"status": f"{len(data)} materials uploaded successfully"}
 
     except Exception as e:
         return {"error": str(e)}

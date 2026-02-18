@@ -123,7 +123,19 @@ def upload_materials():
                     recyclability_percent,
                     cost_per_kg_inr
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, tuple(row))
+            """, (
+                row["base_category"],
+                row["material_form"],
+                row["tensile_strength_mpa"],
+                row["thickness_mm"],
+                row["weight_capacity_kg"],
+                row["moisture_barrier_score"],
+                row["leakage_resistance_score"],
+                row["biodegradability_score"],
+                row["co2_kg_per_kg"],
+                row["recyclability_percent"],
+                row["cost_per_kg_inr"]
+            ))
 
         conn.commit()
         cursor.close()
@@ -133,7 +145,6 @@ def upload_materials():
 
     except Exception as e:
         return {"error": str(e)}
-
 
 # ==========================================================
 # RECOMMEND API

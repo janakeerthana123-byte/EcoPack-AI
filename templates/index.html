@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>EcoPackAI - Input</title>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Pacifico&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+body.loaded {
+  opacity: 1;
+}
+
+.form-card {
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(20px);
+  padding: 40px;
+  border-radius: 20px;
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-card h2 {
+  font-family: 'Pacifico', cursive;
+  font-size: 32px;
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+input, select {
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+}
+
+button {
+  padding: 14px;
+  background: linear-gradient(to right, #00c896, #00e1a8);
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+}
+</style>
+</head>
+
+<body>
+
+<div class="form-card">
+  <h2>EcoPackAI</h2>
+
+  <select id="category">
+    <option>Electronics & Consumer Goods</option>
+    <option>E-commerce & Logistics Goods</option>
+    <option>Food & Beverages</option>
+    <option>Automotive Parts & Accessories</option>
+    <option>Luxury & Specialty Items</option>
+    <option>Cosmetics</option>
+    <option>Clothing & Textiles</option>
+    <option>Agriculture & Raw Materials</option>
+  </select>
+
+  <input type="number" id="weight" placeholder="Weight (kg)">
+  <input type="number" id="fragility" placeholder="Fragility (1-10)">
+  <input type="number" id="moisture" placeholder="Moisture Sensitivity (0-1)" step="0.1">
+  <input type="number" id="leakage" placeholder="Leakage Risk (0-1)" step="0.1">
+
+  <!-- NEW INPUTS ADDED -->
+  <input type="number" id="shipping" placeholder="Shipping Stress Index (1-10)">
+  <input type="number" id="regulatory" placeholder="Regulatory Requirement Level (1-5)">
+
+  <button onclick="goToResults()">Analyze with AI</button>
+</div>
+
+<script>
+window.onload = () => {
+  document.body.classList.add("loaded");
+};
+
+function goToResults() {
+
+  const data = {
+    product_category: document.getElementById("category").value,
+    product_weight_kg: parseFloat(document.getElementById("weight").value),
+    fragility_level_1_to_10: parseFloat(document.getElementById("fragility").value),
+    moisture_sensitivity_0_to_1: parseFloat(document.getElementById("moisture").value),
+    leakage_risk_0_to_1: parseFloat(document.getElementById("leakage").value),
+    shipping_stress_index_1_to_10: parseFloat(document.getElementById("shipping").value),
+    regulatory_requirement_level_1_to_5: parseFloat(document.getElementById("regulatory").value)
+  };
+
+  localStorage.setItem("packagingData", JSON.stringify(data));
+
+  document.body.style.opacity = "0";
+  setTimeout(() => {
+    window.location.href = "/results";
+  }, 500);
+}
+</script>
+
+</body>
+</html>

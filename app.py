@@ -278,6 +278,12 @@ def recommend():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+from flask import render_template
+
+@app.route("/results")
+def results_page():
+    return render_template("results.html")
+    
 # ==========================================================
 # LOCAL RUN
 # ==========================================================

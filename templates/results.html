@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>EcoPackAI - Results</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(135deg,#0f2027,#2c5364);
+  color:white;
+}
+
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:40px;
+}
+
+h1{
+  text-align:center;
+  margin-bottom:40px;
+}
+
+.executive{
+  background:rgba(255,255,255,0.08);
+  padding:30px;
+  border-radius:20px;
+  margin-bottom:40px;
+}
+
+.highlight-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:20px;
+}
+
+.highlight{
+  background:rgba(255,255,255,0.15);
+  padding:20px;
+  border-radius:15px;
+  text-align:center;
+}
+
+.material-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:25px;
+  margin-top:40px;
+}
+
+.material-card{
+  background:white;
+  color:black;
+  padding:25px;
+  border-radius:18px;
+}
+
+.chart-section{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:30px;
+  margin-top:50px;
+}
+
+.chart-box{
+  background:rgba(255,255,255,0.08);
+  padding:20px;
+  border-radius:18px;
+  height:350px;
+}
+
+canvas{
+  height:260px !important;
+}
+
+.buttons{
+  text-align:center;
+  margin-top:40px;
+}
+
+button{
+  padding:12px 28px;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(45deg,#00e1a8,#00c896);
+  color:black;
+  font-weight:600;
+  cursor:pointer;
+  margin:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>EcoPackAI Executive Sustainability Report</h1>
+
+<div class="executive" id="executive"></div>
+
+<div class="material-grid" id="materials"></div>
+
+<div class="chart-section">
+  <div class="chart-box">
+    <h3>Cost Comparison (₹ / kg)</h3>
+    <canvas id="costChart"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>Carbon Intensity (kg CO2e / kg)</h3>
+    <canvas id="co2Chart"></canvas>
+  </div>
+</div>
+
+<div class="chart-section">
+  <div class="chart-box">
+    <h3>Multi-Factor Comparison</h3>
+    <canvas id="radarChart"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>Cost vs Carbon Trade-Off</h3>
+    <canvas id="scatterChart"></canvas>
+  </div>
+</div>
+
+<div class="buttons">
+  <button onclick="downloadPDF()">Download Executive PDF</button>
+  <button onclick="window.location.href='/'">Back</button>
+</div>
+
+</div>
+
+<script>
+
+let globalResults=[];
+let productWeight=1;
+
+async function loadResults(){
+
+const stored=localStorage.getItem("packagingData");
+if(!stored){ alert("No input data."); return; }
+
+const data=JSON.parse(stored);
+productWeight=data.product_weight_kg;
+
+try{
+
+const response=await fetch("/recommend",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(data)
+});
+
+const result=await response.json();
+
+if(result.status!=="success"){
+alert(result.message||"Backend error");
+return;
+}
+
+globalResults=result.results;
+
+renderExecutive(globalResults);
+renderMaterials(globalResults);
+renderCharts(globalResults);
+
+}catch(e){
+alert("Error connecting to backend.");
+}
+}
+
+function renderExecutive(results){
+
+const best=results[0];
+const totalCarbon=best.predicted_co2*productWeight;
+
+document.getElementById("executive").innerHTML=`
+<h2>Top Recommendation</h2>
+<div class="highlight-grid">
+<div class="highlight">
+<h3>${best.material_form}</h3>
+<p>Best Material</p>
+</div>
+<div class="highlight">
+<h3>₹${best.predicted_cost.toFixed(2)}</h3>
+<p>Cost per kg</p>
+</div>
+<div class="highlight">
+<h3>${best.predicted_co2.toFixed(2)} kg CO2e/kg</h3>
+<p>Carbon Intensity</p>
+</div>
+</div>
+<p style="margin-top:20px;">
+Total Carbon Impact: ${totalCarbon.toFixed(2)} kg CO2e
+</p>
+`;
+}
+
+function renderMaterials(results){
+
+const container=document.getElementById("materials");
+container.innerHTML="";
+
+results.forEach((m,i)=>{
+const totalCarbon=m.predicted_co2*productWeight;
+
+container.innerHTML+=`
+<div class="material-card">
+<h3>#${i+1} ${m.material_form}</h3>
+<p><strong>Category:</strong> ${m.base_category}</p>
+<p><strong>Cost:</strong> ₹${m.predicted_cost.toFixed(2)} / kg</p>
+<p><strong>Carbon Intensity:</strong> ${m.predicted_co2.toFixed(2)} kg CO2e/kg</p>
+<p><strong>Total CO2:</strong> ${totalCarbon.toFixed(2)} kg CO2e</p>
+<p><strong>Score:</strong> ${m.final_score.toFixed(3)}</p>
+</div>
+`;
+});
+}
+
+function renderCharts(results){
+
+const labels=results.map(r=>r.material_form);
+const costs=results.map(r=>r.predicted_cost);
+const co2=results.map(r=>r.predicted_co2);
+const scores=results.map(r=>r.final_score*100);
+
+const axisColor="white";
+const gridColor="rgba(255,255,255,0.2)";
+
+/* Cost Bar */
+new Chart(document.getElementById("costChart"),{
+type:"bar",
+data:{labels:labels,datasets:[{data:costs,backgroundColor:"#00e1a8"}]},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{display:false}},
+scales:{
+x:{ticks:{color:axisColor},grid:{color:gridColor}},
+y:{ticks:{color:axisColor},grid:{color:gridColor}}
+}
+}
+});
+
+/* Carbon Bar */
+new Chart(document.getElementById("co2Chart"),{
+type:"bar",
+data:{labels:labels,datasets:[{data:co2,backgroundColor:"#ff6b6b"}]},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{display:false}},
+scales:{
+x:{ticks:{color:axisColor},grid:{color:gridColor}},
+y:{ticks:{color:axisColor},grid:{color:gridColor}}
+}
+}
+});
+
+/* Radar Chart */
+new Chart(document.getElementById("radarChart"),{
+type:"radar",
+data:{
+labels:["Cost","Carbon","Score"],
+datasets:results.map((r,i)=>({
+label:r.material_form,
+data:[
+r.predicted_cost,
+r.predicted_co2,
+r.final_score*100
+],
+borderWidth:2
+}))
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{labels:{color:axisColor}}},
+scales:{
+r:{
+angleLines:{color:gridColor},
+grid:{color:gridColor},
+pointLabels:{color:axisColor},
+ticks:{color:axisColor}
+}
+}
+}
+});
+
+/* Scatter Chart */
+new Chart(document.getElementById("scatterChart"),{
+type:"scatter",
+data:{
+datasets:[{
+label:"Materials",
+data:results.map(r=>({x:r.predicted_cost,y:r.predicted_co2})),
+backgroundColor:"#00e1a8"
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{labels:{color:axisColor}}},
+scales:{
+x:{title:{display:true,text:"Cost",color:axisColor},ticks:{color:axisColor},grid:{color:gridColor}},
+y:{title:{display:true,text:"Carbon",color:axisColor},ticks:{color:axisColor},grid:{color:gridColor}}
+}
+}
+});
+
+}
+
+function downloadPDF(){
+
+const {jsPDF}=window.jspdf;
+const doc=new jsPDF();
+
+doc.setFontSize(18);
+doc.text("EcoPackAI Executive Sustainability Report",20,20);
+
+let y=35;
+
+globalResults.forEach((r,i)=>{
+const totalCarbon=r.predicted_co2*productWeight;
+
+doc.setFontSize(12);
+doc.text(`#${i+1} ${r.material_form}`,20,y); y+=8;
+doc.text(`Category: ${r.base_category}`,25,y); y+=8;
+doc.text(`Cost per kg: Rs ${r.predicted_cost.toFixed(2)}`,25,y); y+=8;
+doc.text(`Carbon Intensity: ${r.predicted_co2.toFixed(2)} kg CO2e/kg`,25,y); y+=8;
+doc.text(`Total CO2 Impact: ${totalCarbon.toFixed(2)} kg CO2e`,25,y); y+=8;
+doc.text(`Score: ${r.final_score.toFixed(3)}`,25,y); y+=12;
+});
+
+doc.save("EcoPackAI_Report.pdf");
+}
+
+loadResults();
+
+</script>
+
+</body>
+</html>

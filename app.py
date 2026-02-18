@@ -100,6 +100,8 @@ def create_table():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+from io import StringIO
+
 @app.route("/upload-materials")
 def upload_materials():
     try:
@@ -108,8 +110,12 @@ def upload_materials():
         conn = get_connection()
         cursor = conn.cursor()
 
-        insert_query = """
-            INSERT INTO materials (
+        buffer = StringIO()
+        df.to_csv(buffer, index=False, header=False)
+        buffer.seek(0)
+
+        cursor.copy_expert("""
+            COPY materials (
                 base_category,
                 material_form,
                 tensile_strength_mpa,
@@ -121,33 +127,15 @@ def upload_materials():
                 co2_kg_per_kg,
                 recyclability_percent,
                 cost_per_kg_inr
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-
-        data = [
-            (
-                row["base_category"],
-                row["material_form"],
-                row["tensile_strength_mpa"],
-                row["thickness_mm"],
-                row["weight_capacity_kg"],
-                row["moisture_barrier_score"],
-                row["leakage_resistance_score"],
-                row["biodegradability_score"],
-                row["co2_kg_per_kg"],
-                row["recyclability_percent"],
-                row["cost_per_kg_inr"]
             )
-            for _, row in df.iterrows()
-        ]
-
-        cursor.executemany(insert_query, data)
+            FROM STDIN WITH CSV
+        """, buffer)
 
         conn.commit()
         cursor.close()
         conn.close()
 
-        return {"status": f"{len(data)} materials uploaded successfully"}
+        return {"status": f"{len(df)} materials uploaded successfully"}
 
     except Exception as e:
         return {"error": str(e)}

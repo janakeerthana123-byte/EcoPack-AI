@@ -218,5 +218,37 @@ def recommend():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/create-table")
+def create_table():
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS materials (
+            material_id SERIAL PRIMARY KEY,
+            base_category VARCHAR(100),
+            material_form VARCHAR(100),
+            tensile_strength_mpa FLOAT,
+            thickness_mm FLOAT,
+            weight_capacity_kg FLOAT,
+            moisture_barrier_score FLOAT,
+            leakage_resistance_score FLOAT,
+            biodegradability_score FLOAT,
+            co2_kg_per_kg FLOAT,
+            recyclability_percent FLOAT,
+            cost_per_kg_inr FLOAT
+        );
+        """)
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {"status": "Table created successfully"}
+
+    except Exception as e:
+        return {"error": str(e)}
+    
 if __name__ == "__main__":
     app.run(debug=True)

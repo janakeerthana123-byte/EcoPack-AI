@@ -61,9 +61,11 @@ def get_connection():
 # ==========================================================
 # HEALTH CHECK
 # ==========================================================
+from flask import render_template
+
 @app.route("/")
 def home():
-    return jsonify({"status": "EcoPackAI Backend Running"})
+    return render_template("index.html")
 
 
 # ==========================================================

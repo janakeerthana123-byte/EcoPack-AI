@@ -169,9 +169,7 @@ def recommend():
         shipping = float(data.get("shipping_stress_index_1_to_10", 5))
         regulatory = float(data.get("regulatory_requirement_level_1_to_5", 3))
 
-        # -------------------------------------------------
-        # FETCH MATERIALS
-        # -------------------------------------------------
+        # ---------------- FETCH MATERIALS ----------------
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM materials;")
@@ -193,17 +191,12 @@ def recommend():
         if df.empty:
             return jsonify({"message": "No materials available."})
 
-        # -------------------------------------------------
-        # PHYSICAL FILTER
-        # -------------------------------------------------
+        # ---------------- PHYSICAL FILTER ----------------
         df = df[df["weight_capacity_kg"] >= weight * 1.1]
-
         if df.empty:
             return jsonify({"message": "No materials support this weight."})
 
-        # -------------------------------------------------
-        # APPLY PRODUCT FEATURES
-        # -------------------------------------------------
+        # ---------------- APPLY PRODUCT FEATURES ----------------
         df["product_weight_kg"] = weight
         df["fragility_level_1_to_10"] = fragility
         df["moisture_sensitivity_0_to_1"] = moisture
@@ -211,9 +204,7 @@ def recommend():
         df["shipping_stress_index_1_to_10"] = shipping
         df["regulatory_requirement_level_1_to_5"] = regulatory
 
-        # -------------------------------------------------
-        # ML PREDICTIONS
-        # -------------------------------------------------
+        # ---------------- ML PREDICTIONS ----------------
         feature_df = df[MODEL_FEATURES]
         scaled = scaler.transform(feature_df)
 
@@ -225,61 +216,38 @@ def recommend():
         df["cost_score"] = 1 - norm.fit_transform(df[["predicted_cost"]])
         df["co2_score"] = 1 - norm.fit_transform(df[["predicted_co2"]])
 
-        df["structure_score"] = norm.fit_transform(df[["tensile_strength_mpa"]])
+        # ---------------- SUITABILITY MATCHING ----------------
 
-        df["sustain_score"] = (
+        # Structural match (fragility vs tensile strength)
+        tensile_norm = norm.fit_transform(df[["tensile_strength_mpa"]]).flatten()
+        df["structural_match"] = 1 - abs(tensile_norm - (fragility / 10))
+
+        # Moisture compatibility
+        df["moisture_match"] = 1 - abs(df["moisture_barrier_score"] - moisture)
+
+        # Leakage compatibility
+        df["leakage_match"] = 1 - abs(df["leakage_resistance_score"] - leakage)
+
+        # Sustainability pressure (regulation-aware)
+        eco_base = (
             df["biodegradability_score"] +
             df["recyclability_percent"] / 100
         ) / 2
+        df["eco_match"] = eco_base * (regulatory / 5)
 
-        # -------------------------------------------------
-        # CATEGORY PRIORITY (ALL 8 INDUSTRIES)
-        # -------------------------------------------------
-        df["category_priority"] = 0.0
-
-        if category == "Electronics & Consumer Goods":
-            df.loc[df["base_category"].isin(["Plastic","Bioplastic","Paper","Metal"]), "category_priority"] += 0.3
-
-        elif category == "E-commerce & Logistics Goods":
-            df.loc[df["base_category"].isin(["Paper","Sustainable","Bioplastic"]), "category_priority"] += 0.3
-
-        elif category == "Food & Beverages":
-            if moisture > 0.5 or leakage > 0.5:
-                df.loc[df["base_category"].isin(["Glass","Metal","Plastic"]), "category_priority"] += 0.3
-            else:
-                df.loc[df["base_category"].isin(["Paper","Bioplastic","Sustainable"]), "category_priority"] += 0.3
-
-        elif category == "Automotive Parts & Accessories":
-            df.loc[df["base_category"].isin(["Metal","Plastic"]), "category_priority"] += 0.3
-
-        elif category == "Luxury & Specialty Items":
-            df.loc[df["base_category"].isin(["Glass","Metal","Sustainable"]), "category_priority"] += 0.3
-
-        elif category == "Cosmetics":
-            df.loc[df["base_category"].isin(["Glass","Plastic","Bioplastic"]), "category_priority"] += 0.3
-
-        elif category == "Clothing & Textiles":
-            df.loc[df["base_category"].isin(["Paper","Bioplastic","Plastic"]), "category_priority"] += 0.3
-
-        elif category == "Agriculture & Raw Materials":
-            df.loc[df["base_category"].isin(["Paper","Sustainable"]), "category_priority"] += 0.3
-
-        # -------------------------------------------------
-        # FINAL WEIGHTED SCORE
-        # -------------------------------------------------
+        # ---------------- FINAL INTELLIGENT SCORE ----------------
         df["final_score"] = (
-            0.25 * df["cost_score"] +
-            0.25 * df["co2_score"] +
-            0.20 * df["structure_score"] +
-            0.20 * df["sustain_score"] +
-            0.10 * df["category_priority"]
+            0.20 * df["cost_score"] +
+            0.20 * df["co2_score"] +
+            0.20 * df["structural_match"] +
+            0.15 * df["moisture_match"] +
+            0.15 * df["leakage_match"] +
+            0.10 * df["eco_match"]
         )
 
         df = df.sort_values(by="final_score", ascending=False)
 
-        # -------------------------------------------------
-        # ENSURE VARIETY (NO SAME MATERIAL_FORM)
-        # -------------------------------------------------
+        # ---------------- ENSURE VARIETY ----------------
         selected = []
         used_forms = set()
 
@@ -290,7 +258,10 @@ def recommend():
             if len(selected) == 3:
                 break
 
-        result_df = pd.DataFrame(selected)
+        if len(selected) < 3:
+            result_df = df.head(3)
+        else:
+            result_df = pd.DataFrame(selected)
 
         return jsonify({
             "status": "success",

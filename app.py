@@ -99,6 +99,40 @@ def create_table():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route("/upload-materials")
+def upload_materials():
+    try:
+        df = pd.read_csv("Materials.csv")
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        for _, row in df.iterrows():
+            cursor.execute("""
+                INSERT INTO materials (
+                    base_category,
+                    material_form,
+                    tensile_strength_mpa,
+                    thickness_mm,
+                    weight_capacity_kg,
+                    moisture_barrier_score,
+                    leakage_resistance_score,
+                    biodegradability_score,
+                    co2_kg_per_kg,
+                    recyclability_percent,
+                    cost_per_kg_inr
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, tuple(row))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {"status": "Materials uploaded successfully"}
+
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ==========================================================

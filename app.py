@@ -225,32 +225,12 @@ def recommend():
 @app.route("/create-table")
 def create_table():
     try:
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS materials (
-            material_id SERIAL PRIMARY KEY,
-            base_category VARCHAR(100),
-            material_form VARCHAR(100),
-            tensile_strength_mpa FLOAT,
-            thickness_mm FLOAT,
-            weight_capacity_kg FLOAT,
-            moisture_barrier_score FLOAT,
-            leakage_resistance_score FLOAT,
-            biodegradability_score FLOAT,
-            co2_kg_per_kg FLOAT,
-            recyclability_percent FLOAT,
-            cost_per_kg_inr FLOAT
-        );
-        """)
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        return {"status": "Table created successfully"}
-
+        return {
+            "DB_HOST": os.environ.get("DB_HOST"),
+            "DB_NAME": os.environ.get("DB_NAME"),
+            "DB_USER": os.environ.get("DB_USER"),
+            "DB_PORT": os.environ.get("DB_PORT")
+        }
     except Exception as e:
         return {"error": str(e)}
     

@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>EcoPackAI – Intelligent Packaging Platform</title>
+<title>EcoPackAI – Intelligent Sustainable Packaging</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
@@ -10,102 +10,154 @@
 body{
   margin:0;
   font-family:'Poppins',sans-serif;
-  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-  color:white;
-  text-align:center;
+  background:linear-gradient(135deg,#0b3d2e,#145a32,#1e8449);
+  color:#f4fdf7;
+  overflow-x:hidden;
 }
 
+/* NAVBAR */
+nav{
+  display:flex;
+  justify-content:space-between;
+  padding:25px 80px;
+  font-weight:600;
+}
+
+nav .logo{
+  font-size:22px;
+  letter-spacing:1px;
+}
+
+nav a{
+  color:#f4fdf7;
+  text-decoration:none;
+  margin-left:30px;
+  transition:0.3s;
+}
+
+nav a:hover{
+  color:#a9f5c3;
+}
+
+/* HERO */
 .hero{
-  padding:120px 20px;
+  text-align:center;
+  padding:120px 20px 80px 20px;
 }
 
-h1{
+.hero h1{
   font-size:48px;
+  font-weight:700;
   margin-bottom:20px;
 }
 
-p{
-  font-size:20px;
-  max-width:800px;
-  margin:auto;
-  opacity:0.85;
-}
-
-button{
-  margin-top:40px;
-  padding:15px 40px;
-  border:none;
-  border-radius:30px;
-  background:linear-gradient(45deg,#00e1a8,#00c896);
+.hero p{
   font-size:18px;
+  max-width:700px;
+  margin:auto;
+  opacity:0.9;
+}
+
+.cta{
+  margin-top:40px;
+}
+
+.cta button{
+  padding:16px 40px;
+  border:none;
+  border-radius:40px;
+  background:linear-gradient(45deg,#00e1a8,#00c896);
+  color:#033b2f;
   font-weight:600;
+  font-size:16px;
   cursor:pointer;
+  box-shadow:0 8px 25px rgba(0,0,0,0.4);
+  transition:0.3s;
 }
 
-.section{
-  padding:80px 20px;
-  background:rgba(255,255,255,0.05);
+.cta button:hover{
+  transform:translateY(-4px);
+  box-shadow:0 12px 35px rgba(0,0,0,0.5);
 }
 
+/* FEATURES */
 .features{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-  gap:30px;
-  max-width:1100px;
-  margin:auto;
-  margin-top:50px;
+  grid-template-columns:repeat(3,1fr);
+  gap:40px;
+  padding:80px;
 }
 
-.card{
-  background:rgba(255,255,255,0.1);
-  padding:30px;
+.feature{
+  background:rgba(255,255,255,0.08);
+  backdrop-filter:blur(20px);
+  padding:40px;
   border-radius:20px;
+  text-align:center;
+  transition:0.3s;
 }
 
-.footer{
-  padding:30px;
-  font-size:14px;
-  opacity:0.6;
+.feature:hover{
+  transform:translateY(-6px);
+  background:rgba(255,255,255,0.12);
+}
+
+.feature h3{
+  margin-bottom:15px;
+}
+
+footer{
+  text-align:center;
+  padding:40px;
+  opacity:0.7;
 }
 </style>
 </head>
 
 <body>
 
-<div class="hero">
-  <h1>EcoPack AI</h1>
-  <p>
-    Intelligent Sustainable Packaging Decision Engine  
-    Optimizing Cost, Carbon Emissions and Structural Suitability in Real-Time.
-  </p>
-  <button onclick="window.location.href='/input'">Get Started</button>
-</div>
-
-<div class="section">
-  <h2>Why EcoPackAI?</h2>
-  <div class="features">
-    <div class="card">
-      <h3>Machine Learning Powered</h3>
-      <p>Predicts cost and carbon footprint using trained ML models.</p>
-    </div>
-    <div class="card">
-      <h3>Engineering Suitability</h3>
-      <p>Matches fragility, moisture and leakage risk with material properties.</p>
-    </div>
-    <div class="card">
-      <h3>Sustainability Optimized</h3>
-      <p>Considers biodegradability and recyclability under regulatory pressure.</p>
-    </div>
-    <div class="card">
-      <h3>Executive Reporting</h3>
-      <p>Generates comparative charts and downloadable sustainability reports.</p>
-    </div>
+<nav>
+  <div class="logo">EcoPack AI</div>
+  <div>
+    <a href="/input">Try Demo</a>
   </div>
-</div>
+</nav>
 
-<div class="footer">
-  © 2026 EcoPackAI – Intelligent Sustainable Packaging Platform
-</div>
+<section class="hero">
+  <h1>AI-Driven Sustainable Packaging Intelligence</h1>
+  <p>
+    EcoPack AI optimizes packaging materials using predictive cost modeling,
+    carbon analysis, and structural compatibility scoring — enabling businesses
+    to reduce emissions without increasing cost.
+  </p>
+
+  <div class="cta">
+    <button onclick="window.location.href='/input'">
+      Launch Sustainability Engine
+    </button>
+  </div>
+</section>
+
+<section class="features">
+  <div class="feature">
+    <h3>🌍 Carbon Optimization</h3>
+    <p>Reduce CO₂ impact using AI-driven material selection.</p>
+  </div>
+
+  <div class="feature">
+    <h3>💰 Cost Efficiency</h3>
+    <p>Balance sustainability and profitability intelligently.</p>
+  </div>
+
+  <div class="feature">
+    <h3>📦 Structural Matching</h3>
+    <p>Material compatibility scoring based on product physics.</p>
+  </div>
+</section>
+
+<footer>
+  © 2026 EcoPackAI — Sustainable Intelligence Platform
+</footer>
 
 </body>
 </html>
